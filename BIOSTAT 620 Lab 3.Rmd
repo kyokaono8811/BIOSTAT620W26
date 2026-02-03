@@ -1,0 +1,201 @@
+---
+title: "BIOSTAT 620 Lab 3"
+author: "Kyoka Ono"
+date: "2026-01-29"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+```
+
+### 1. Read in the data
+
+```{r}
+met <- read.csv("/Users/kyokaono/Desktop/BIOSTAT620 /met_all (1).gz")
+```
+
+### 2. Check the dimensions, headers, footers
+
+- 2377343 rows
+- 30 columns 
+
+```{r}
+dim(met)
+```
+
+### 3. Take a look at all the variables (hint: use the str funcion)
+
+```{r}
+str(met)
+```
+### 4. Take a closer look at the key variales (year, day, hour, temp, elev, wind.sp). Hint: use table and/or summary.
+
+```{r}
+year <- met["year"]
+table(year)
+```
+
+```{r}
+day <- met["day"]
+table("day")
+```
+
+```{r}
+hour <- met["hour"]
+table(hour)
+```
+
+```{r}
+summary(hour)
+```
+
+```{r}
+temp <- met["temp"]
+summary(temp)
+```
+
+```{r}
+elev <- met["elev"]
+summary(elev)
+```
+
+```{r}
+wind.sp <- met["wind.sp"]
+summary(wind.sp)
+```
+
+```{r}
+# checking missing data for the elevation
+sum(met$elev == 9999.0)
+```
+
+```{r}
+# replacing 9999.0 elevation with NAs
+met$elev[which(met$elev == 9999.0)] <- NA
+```
+
+```{r}
+sum(met$elev == 9999.0, na.rm = TRUE)
+```
+
+```{r}
+# checking the highest weather station (4113)
+max(met$elev, na.rm = TRUE)
+```
+
+```{r}
+# checking temperature data with -40C
+sum(met$temp == -40.0, na.rm = TRUE)
+```
+
+```{r}
+# Replacing -40.0 with NA 
+met$temp[which(met$temp == -40.0)] <- NA
+```
+
+```{r}
+sum(met$temp == -40.0, na.rm = TRUE)
+```
+
+```{r}
+# the new lowest temperature
+min(met$temp, na.rm = TRUE)
+```
+
+### 5. Check the data against an extrnal data source.
+
+Validate that the total range of elevation in the data make sense. Also, we should check the suspicious -17.2C temperature value (where is it located?).
+
+```{r}
+# The range of elevation makes sense. According to Google, it is positive if it is above the sea level, and negative if it is below the sea level. 
+summary(met$elev)
+```
+
+```{r}
+# According to Google map, the location is Ellicott, Colorado. The average temperature during August seems to be higher than what is represented on the data. 
+head(met %>% filter(temp == -17.2))
+```
+
+### 6. Calculate summary statistics 
+
+Remember to keep the initial question in mind. We want to pick out the weather station with maximum elevation and examine its windspeed and temperature. 
+
+Some ideas: select the weather station with maximum elevation; within this station, look at the correlation between temperature and wind speed. Also, look at the correlation between (temp and wind.sp) and (hour and day) (four total pairwise correlations).
+
+```{r}
+max_elev_data <- met %>% filter(elev == 4113, !is.na(temp), !is.na(wind.sp))
+head(max_elev_data)
+```
+
+```{r}
+# temperature and windspeed 
+cor(max_elev_data$temp, max_elev_data$wind.sp)
+```
+
+```{r}
+# temperature and hour
+cor(max_elev_data$temp, max_elev_data$hour)
+```
+
+```{r}
+# temperature and day
+cor(max_elev_data$temp, max_elev_data$day)
+```
+
+```{r}
+# wind.sp and hour
+cor(max_elev_data$wind.sp, max_elev_data$hour)
+```
+
+```{r}
+# wind.sp and day
+cor(max_elev_data$wind.sp, max_elev_data$day)
+```
+
+### 7. Exploratory graphs
+
+We should look at the distributions of all of the key variables to make sure there are no remaining issues with the data. Hint: using the hist function, make histograms of the elev, temp, and wind.sp variables.
+
+(in hist(), it ignores NA values)
+
+```{r}
+hist(met$elev)
+```
+
+```{r}
+hist(met$temp)
+```
+
+```{r}
+hist(met$wind.sp)
+```
+
+```{r}
+# Look at where the weather station with highest elevation is located
+library(leaflet)
+leaflet(max_elev_data) %>%
+  addProviderTiles('OpenStreetMap') %>% 
+  addCircles(lat=~lat,lng=~lon, opacity=1, fillOpacity=1, radius=100)
+```
+
+```{r}
+# Look at the time series of temperature and wind speed at this location. For this we will need to create a date-time variable for the x-axis 
+library(lubridate)
+max_elev_data$date <- with(max_elev_data, ymd_h(paste(year, month, day, hour, sep= ' ')))
+summary(max_elev_data$date)
+max_elev_data <- max_elev_data[order(max_elev_data$date), ]
+head(max_elev_data)
+```
+
+### 8. Ask questions
+
+What is the correlation between wind.sp and elevation? 
+
+```{r}
+new_data <- met %>% filter(!is.na(elev), !is.na(wind.sp))
+cor(new_data$elev, new_data$wind.sp)
+```
+
+Ans. There is a subtle positive correlation. 
+
