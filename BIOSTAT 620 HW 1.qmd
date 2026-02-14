@@ -1,0 +1,346 @@
+---
+title: "BIOSTAT 620 HW 1"
+author: "Kyoka Ono"
+format: html
+editor: visual
+embed-resources: true
+---
+
+## BIOSTAT 620 HW1
+
+### Question 1 (20 points)
+
+Given the formulated question from the assignment description, you will now conduct ED Checklist items 1-5.
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(leaflet)
+library(kableExtra)
+library(maps)
+```
+
+First, download 2005 and 2025 PM2.5 data for all sites in Michigan from the EPA Air Quality Data website, then read the data into R.
+
+```{r}
+mi_05 <- read.csv("/Users/kyokaono/Desktop/MI_05.csv")
+
+```
+
+```{r}
+mi_25 <- read.csv("/Users/kyokaono/Desktop/MI_25.csv")
+```
+
+For each of the two datasets, check the dimensions, headers, footers, variable names and variable types.
+
+#### 2005 Data Outline
+
+```{r}
+dim(mi_05)
+```
+
+```{r}
+head(mi_05)
+```
+
+```{r}
+tail(mi_05)
+```
+
+```{r}
+colnames(mi_05)
+```
+
+```{r}
+str(mi_05)
+```
+
+#### 2025 Data Outline
+
+```{r}
+dim(mi_25)
+```
+
+```{r}
+head(mi_25)
+```
+
+```{r}
+tail(mi_25)
+```
+
+```{r}
+colnames(mi_25)
+```
+
+```{r}
+str(mi_25)
+```
+
+Check the distribution of the key variable we are analyzing (PM2.5). Write up a summary of all of your findings.
+
+#### Key Variables & Summary & Distributions:
+
+-   Date
+
+-   Daily.Mean.PM2.5.Concentration
+
+-   Daily.AQI.Value
+
+-   County
+
+-   Local.Site.Name
+
+-   Site.Latitude, Site.Longitude
+
+```{r}
+summary(mi_05$Daily.Mean.PM2.5.Concentration)
+```
+
+```{r}
+summary(mi_05$Daily.AQI.Value)
+```
+
+```{r}
+mi_05[which(max(mi_05$Daily.Mean.PM2.5.Concentration) == mi_05$Daily.Mean.PM2.5.Concentration),]
+```
+
+```{r}
+head(sort(table(mi_05$County), decreasing = TRUE))
+```
+
+```{r}
+kable(head(sort(table(mi_05$Local.Site.Name), decreasing = TRUE))) # missing data detected 
+```
+
+```{r}
+summary(mi_25$Daily.Mean.PM2.5.Concentration)
+```
+
+```{r}
+summary(mi_25$Daily.AQI.Value)
+```
+
+```{r}
+mi_25[which(max(mi_25$Daily.Mean.PM2.5.Concentration) == mi_25$Daily.Mean.PM2.5.Concentration),]
+```
+
+```{r}
+head(sort(table(mi_25$County), decreasing = TRUE))
+```
+
+```{r}
+kable(head(sort(table(mi_25$Local.Site.Name), decreasing = TRUE)))
+```
+
+```{r}
+ggplot(data = mi_05) + 
+  geom_violin(mapping = aes(x = 1, y = Daily.Mean.PM2.5.Concentration), fill ="coral1") +
+  labs(title = "PM2.5 Concentration 2005") + 
+  labs(y = "Daily Mean PM2.5 Concentration") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data = mi_25) + 
+  geom_violin(mapping = aes(x = 1, y = Daily.Mean.PM2.5.Concentration), fill = "coral1") +
+  labs(title = "PM2.5 Concentration 2025") + 
+  labs(y = "Daily Mean PM2.5 Concentration") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data = mi_05) + 
+  geom_violin(mapping = aes(x = 1, y = Daily.AQI.Value), fill = "skyblue") +
+  labs(title = "AQI Value 2005") + 
+  labs(y = "Daily AQI Value") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data = mi_25) + 
+  geom_violin(mapping = aes(x = 1, y = Daily.AQI.Value), fill = "skyblue") +
+  labs(title = "AQI Value 2025") + 
+  labs(y = "Daily AQI Value") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The overall daily mean PM2.5 concentration has decreased from 2005 to 2025. Additionally, daily Air Quality Index (AQI) value has also decreased from 2005 to 2025 overall (can be concluded from the violin plots). The maximum PM2.5 and AQI values increased from 2005 to 2025; however, they were detected at two different counties and local sites. Additionally, investigated counties were similar in 2005 and 2025, but not quite for local sites. Missing data were detected in some columns as well. 
+
+### Question 2 (10 pts)
+
+Combine two years of data into one data frame. Use the Date variable to create a new column for year, which will serve as identifier. Change the names of the key variables so that they are easier to refer to in your code.
+
+```{r}
+mi_05_25 <- rbind(mi_05, mi_25)
+```
+
+```{r}
+mi_05_25$Date <- mdy(mi_05_25$Date)
+```
+
+```{r}
+mi_05_25 <- mi_05_25 %>% mutate(year = factor(year(mi_05_25$Date)))
+```
+
+### Question 3 (20pts)
+
+Create a basic map (or maps) in either leaflet or ggplot showing the locations of the monitoring sites, using different colors for each year. Summarize the spatial distribution of the sites. Does this distribution change from 2005 to 2025?
+
+```{r}
+state_data <- map_data("state")
+michigan_data <- state_data[state_data$region == "michigan",]
+
+ggplot(michigan_data, aes(x = long, y = lat)) +
+  geom_map(aes(map_id = region), map = michigan_data, col = "lightgrey", fill = "gray") + 
+  geom_jitter(
+    data = mi_05_25, 
+    mapping = aes(x = Site.Longitude, y = Site.Latitude, color = year),
+    inherit.aes = FALSE, alpha = .5, cex = 2) +
+  labs(title = "Monitoring Sites in Michigan") +
+  theme(plot.title = element_text(hjust = 0.5),
+        aspect.ratio = 1) +
+  labs(x = "longitude", y = "latitude") 
+```
+The distribution of monitoring sites between 2005 and 2025 seem to slightly differ. Additionally, there are more population in the bottom peninsula, which is possibly a reason why there are more sites investigated there in 2025.  
+
+### Question 4 (20 points)
+
+Check for any data issues such as missing or implausible values of PM2.5 in the combined dataset.
+
+```{r}
+na_vec <- c()
+empty_vec <- c()
+for (i in 1:ncol(mi_05_25)){
+  na_vec[i] <- c(sum(is.na(mi_05_25[,i])))
+  empty_vec[i] <- c(sum(mi_05_25[,i] == ""))
+}
+na_vec
+empty_vec
+
+sum(is.na(mi_05_25[,13]))
+sum(is.na(mi_05_25[,15]))
+sum(mi_05_25[,8] == "")
+```
+
+There are 2543 missing values in "Method.Code" column and 854 missing variables in "CBSA.Code" column. Additionally, there are 633 missing variables in "Local.Site.Name". 
+
+No negative values 
+```{r}
+which(mi_05_25$Daily.Mean.PM2.5.Concentration < 0)
+```
+
+Although some sites detected PM2.5 of 0, it is very rare. 
+```{r}
+mi_05_25[which(mi_05_25$Daily.Mean.PM2.5.Concentration == 0),]
+```
+
+Let's look more closely at the methods used for data collection. Look at the distribution of the method code variable. Examine the two most common method codes in the EPA PM2.5 Codetable, and describe your findings.
+
+```{r}
+method_code <- mi_05_25$Method.Code
+# 2005 Method Code 
+head(sort(table(method_code[mi_05_25$year == 2005]), decreasing = TRUE),2)
+
+# 2025 Method Code 
+head(sort(table(method_code[mi_05_25$year == 2025]), decreasing = TRUE),2)
+```
+
+The method 118 and 810 were used the most in 2005, and the method 636 and 170 were used the most in 2025. 118 and 810 are both Intermittent recording style, whereas 636 and 170 are both Continuous recording style, which may indicate that the method from 2025 is more accurate. 
+
+Calculate the proportion of missing values and method code for each year and report any temporal patterns you see in these observations. Why might these temporal patterns matter?
+
+```{r}
+# 2005 Proportion 
+proportion_data_05 <- mi_05_25 %>% 
+  group_by(Method.Code) %>%
+  filter(year == 2005) %>%
+  summarize(method_prop_05 = n() / nrow(mi_05)) 
+head(proportion_data_05)
+```
+
+```{r}
+# 2025 Proportion 
+proportion_data_25 <- mi_05_25 %>% 
+  group_by(Method.Code) %>%
+  filter(year == 2025) %>%
+  summarize(method_prop_25 = n() / nrow(mi_25))
+head(proportion_data_25)
+```
+
+### Question 5 (30 points)
+
+Explore the main question of interest at three different levels of spatial resolution. Create data visualizations (e.g. boxplots, histograms, line plots, violin plots) **and** summary statistics that best suit each level of the analysis. Be sure to write up explanations of what you observe at each level. For levels 2 and 3, include at least one spatial plot.
+
+Level 1: State. Examine the primary question for the entire state.
+
+The summary statistics and violin plots are already compared in Question 1. 
+
+Level 2: County. Examine the primary question for every county in Michigan.
+
+```{r}
+# 2005 
+pm_ave_data_05 <- mi_05_25 %>%
+  filter(year == 2005) %>% group_by(County) %>%
+  summarize(pm_ave_05 = mean(Daily.Mean.PM2.5.Concentration)) 
+head(pm_ave_data_05,10)
+```
+
+```{r}
+# 2025
+pm_ave_data_25 <- mi_05_25 %>%
+  filter(year == 2025) %>% group_by(County) %>%
+  summarize(pm_ave_25 = mean(Daily.Mean.PM2.5.Concentration))
+head(pm_ave_data_25,10)
+```
+The majority of the county have their average PM2.5 decreased from 2005 to 2025.  
+
+Level 3: City. Restrict the data to sites in Wayne county and examine the primary question for every site.
+
+```{r}
+wayne_data_05 <- mi_05_25 %>% 
+  filter(County == "Wayne", year == 2005, Local.Site.Name != "")
+
+wayne_data_25 <- mi_05_25 %>%
+  filter(County == "Wayne", year == 2025, !(Local.Site.Name == ""))
+```
+
+https://ggplot2.tidyverse.org/reference/map_data.html (reference for map_data("county"))
+```{r}
+county_data <- map_data("county")
+michigan_data <- county_data[county_data$region == "michigan",]
+wayne_data <- michigan_data[michigan_data$subregion == "wayne",]
+```
+
+```{r}
+# 2005
+ggplot(wayne_data, aes(x = long, y = lat)) +
+  geom_map(aes(map_id = region), map = wayne_data, col = "lightgrey", fill = "gray") + 
+  geom_jitter(
+    data = wayne_data_05, 
+    mapping = aes(x = Site.Longitude, y = Site.Latitude, color = Daily.Mean.PM2.5.Concentration),
+    alpha = .5, cex = 2) +
+  scale_color_gradient(low = "blue", high = "red")
+  labs(title = "Wayne County PM2.5 Concentration 2005") +
+  theme(plot.title = element_text(hjust = 0.5),
+        aspect.ratio = 1) +
+  labs(x = "longitude", y = "latitude") 
+```
+
+```{r}
+# 2025
+ggplot(wayne_data, aes(x = long, y = lat)) +
+  geom_map(aes(map_id = region), map = wayne_data, col = "lightgrey", fill = "gray") + 
+  geom_jitter(
+    data = wayne_data_25, 
+    mapping = aes(x = Site.Longitude, y = Site.Latitude, color = Daily.Mean.PM2.5.Concentration), 
+    alpha = .5, cex = 2) + 
+  scale_color_gradient(low = "blue", high = "red")
+  labs(title = "Wayne County PM2.5 Concentration 2005") +
+  theme(plot.title = element_text(hjust = 0.5),
+        aspect.ratio = 1) +
+  labs(x = "longitude", y = "latitude") 
+```
+
+PM2.5 seem to fall within the range of 15-30 in 2005, and 5-15 in 2025. Therefore, it can be concluded that PM2.5 has decreased in Wayne county. 
