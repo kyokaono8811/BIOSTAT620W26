@@ -1,0 +1,128 @@
+---
+title: "BIOSTAT 620 Lab 6"
+author: "Kyoka Ono"
+format: html
+editor: visual
+---
+
+### Read in Medical Transcriptions
+
+```{r}
+library(tidyverse)
+library(tidytext)
+```
+
+```{r}
+url <- "https://raw.githubusercontent.com/dmcable/BIOSTAT620W26/main/data/mtsamples/mtsamples.csv"
+
+medical_data <- read.csv(url)
+```
+
+### Question 1: What specialties do we have?
+
+```{r}
+medical_data %>% count(medical_specialty) %>% View()
+```
+
+```{r}
+medical_data %>% count(medical_specialty) %>% nrow()
+```
+
+Surgery and Neurosurgery are overlapping
+
+### Question 2
+
+```{r}
+medical_data %>% 
+  unnest_tokens(tokens, transcription) %>% 
+  count(tokens) %>% 
+  top_n(20,n) %>%
+  ggplot(aes(n, fct_reorder(tokens, n))) + 
+  geom_col(fill = "skyblue") + 
+  labs(x = "Tokens Frequency", y = "Tokens")
+```
+
+The output makes sense since the top most frequent words consist of articles, prepositions, and pronouns.
+
+### Question 3
+
+```{r}
+medical_data %>% 
+  unnest_tokens(tokens, transcription) %>% 
+  anti_join(stop_words, by = c("tokens" = "word")) %>% 
+  count(tokens, sort = TRUE) %>%
+  top_n(20,n) %>% 
+  ggplot(aes(n, fct_reorder(tokens, n))) + 
+  geom_col(fill = "skyblue") + 
+  labs(x = "Tokens Frequency", y = "Tokens")
+```
+
+### Question 4
+
+```{r}
+# bi-grams
+medical_data %>% 
+  unnest_ngrams(bigrams, transcription, n = 2) %>%
+  count(bigrams) %>% 
+  top_n(20,n) %>%
+  ggplot(aes(n, fct_reorder(bigrams, n))) + 
+  geom_col(fill = "skyblue") + 
+  labs(x = "Bigrams Frequency", y = "Bigrams")
+```
+
+```{r}
+# tri-grams
+medical_data %>% 
+  unnest_ngrams(trigrams, transcription, n = 3) %>%
+  count(trigrams) %>% 
+  top_n(20,n) %>%
+  ggplot(aes(n, fct_reorder(trigrams, n))) + 
+  geom_col(fill = "skyblue") + 
+  labs(x = "Trigrams Frequency", y = "Trigrams")
+```
+
+### Question 5
+
+-   selected word: patient
+
+```{r}
+# before
+medical_data %>% 
+  unnest_ngrams(bigrams, transcription, n = 2) %>%
+  separate(bigrams, into = c("word1", "word2"), sep = " ") %>%
+  select(word1, word2) %>%
+  filter(word2 == "patient") %>% count(word1, sort = TRUE)
+```
+
+```{r}
+# after
+medical_data %>% 
+  unnest_ngrams(bigrams, transcription, n = 2) %>%
+  separate(bigrams, into = c("word1", "word2"), sep = " ") %>%
+  select(word1, word2) %>%
+  filter(word1 == "patient") %>% count(word2, sort = TRUE)
+```
+
+### Question 6
+
+```{r}
+medical_data %>% 
+  unnest_tokens(tokens, transcription) %>% 
+  anti_join(stop_words, by = c("tokens" = "word")) %>%
+  group_by(medical_specialty) %>% 
+  count(tokens) %>% 
+  top_n(5,n) 
+```
+
+### Question 7
+
+In each medical specialty, which top two keywords appear the most?
+
+```{r}
+medical_data %>% 
+  unnest_tokens(tokens, keywords) %>% 
+  anti_join(stop_words, by = c("tokens" = "word")) %>%
+  group_by(medical_specialty) %>%
+  count(tokens) %>% 
+  top_n(2,n)
+```
