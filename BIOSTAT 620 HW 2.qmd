@@ -358,10 +358,11 @@ ggplot(data = data_merged) +
   labs(title = "FEV by BMI Category") + 
   labs(x = "FEV", y = "Count") + 
   theme(plot.title = element_text(hjust = 0.5)) + 
-  labs(fill = "Obesity Level")
+  labs(fill = "Obesity Level") +
+  scale_fill_viridis_d()
 ```
 
-According to the histogram visualization, this data is normally distributed. The most frequently appeared fev for people with normal obesity level is around 2000, 2250 for overweight people, 2300 for people who are in obese category, and approximately 1600 for people categorized as underweight. 
+According to the histogram visualization, this data is normally distributed. The most frequently appeared fev for people with normal obesity level is around 2000, 2250 for overweight people, 2300 for people who are in obese category, and approximately 1600 for people categorized as underweight.
 
 ```{r}
 ggplot(data = data_merged) + 
@@ -369,10 +370,11 @@ ggplot(data = data_merged) +
   labs(title = "FEV by Smoke/Gas Exposure") + 
   labs(x = "Exposure Type", y = "Count") + 
   theme(plot.title = element_text(hjust = 0.5)) + 
-  labs(fill = "Smoke/Gas Exposure")
+  labs(fill = "Smoke/Gas Exposure") +
+  scale_fill_viridis_d()
 ```
 
-This data is normally distributed as well. The interpretation is similar to the histogram above. The most frequently appeared fev is similar for "Both" and "GS Only" groups, and higher for "No Exposure" and "SHS Only" groups. 
+This data is normally distributed as well. The interpretation is similar to the histogram above. The most frequently appeared fev is similar for "Both" and "GS Only" groups, and higher for "No Exposure" and "SHS Only" groups.
 
 3.  Barchart of BMI by smoke/gas exposure
 
@@ -410,7 +412,8 @@ ggplot(data = data_merged) +
   theme(plot.title = element_text(hjust = 0.5)) + 
   labs(fill = "Smoke/Gas Exposure Category")
 ```
-For both of these box plots, the order of average FEV for each group aligns with the results above. Additionally, difference in mean FEV does not look as significant as they are represented in numbers, with data visualization. 
+
+For both of these box plots, the order of average FEV for each group aligns with the results above. Additionally, difference in mean FEV does not look as significant as they are represented in numbers, with data visualization.
 
 5.  A leaflet map showing the concentrations of PM2.5 mass in each of the CHS communities.
 
@@ -452,4 +455,4 @@ ggplot(data = data_merged) +
   labs(x = "PM2.5 Mass", y = "FEV")
 ```
 
-There is no linear relationship between PM2.5 mass and FEV. There is no significant association between PM2.5 mass and FEV. 
+There is no linear relationship between PM2.5 mass and FEV. There is no significant association between PM2.5 mass and FEV.
