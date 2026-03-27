@@ -1,0 +1,364 @@
+---
+title: "BIOSTAT 620 HW 3"
+author: "Kyoka Ono"
+format: html
+editor: visual
+embed-resources: true
+---
+
+## Text Mining
+
+On the course Github, navigate to the page for dataset `pubmed` (<https://github.com/dmcable/BIOSTAT620W26/tree/main/data/pubmed>) and download the `pubmed.csv` dataset. This dataset contains 3,241 abstracts from articles collected via 5 PubMed searches. The search terms are listed in the second column, `term` and these will serve as the "documents". Your job is to analyze these abstracts to find interesting insights.
+
+```{r}
+library(kableExtra)
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(textdata)
+```
+
+```{r}
+url <- 'https://raw.githubusercontent.com/dmcable/BIOSTAT620W26/main/data/pubmed/pubmed.csv'
+if (!file.exists("pubmed.csv"))
+  download.file(
+    url = url,
+    destfile = "pubmed.csv",
+    method   = "libcurl",
+    timeout  = 60
+    )
+```
+
+```{r}
+pubmed_data <- read.csv("pubmed.csv")
+```
+
+### Problem 1
+
+(15 points) How many abstracts are associated with each search term? Tokenize the abstracts and count the number of each token. Do you see anything interesting? What are the 5 most common tokens for each search term?
+
+```{r}
+# How many abstracts are associated with each search term?
+kable(table(pubmed_data$term))
+```
+
+```{r}
+# Tokenize the abstracts and count the number of each token. Do you see anything interesting? 
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  count(token) %>% 
+  arrange(desc(n)) %>% 
+  head(20) %>%
+  kable()
+```
+
+The majority of the 20 common words are all articles or common words found in healthcare settings.
+
+```{r}
+# What are the 5 most common tokens for each search term? 
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  filter(term == "covid") %>% 
+  count(token) %>% 
+  top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "royalblue") + 
+  labs(title = "Top 5 Token Count (Covid)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+  
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  filter(term == "meningitis") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "royalblue") + 
+  labs(title = "Top 5 Token Count (Meningitis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  filter(term == "prostate cancer") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "royalblue") + 
+  labs(title = "Top 5 Token Count (Prostate Cancer)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  filter(term == "cystic fibrosis") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "royalblue") + 
+  labs(title = "Top 5 Token Count (Cystic Fibrosis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  filter(term == "preeclampsia") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "royalblue") + 
+  labs(title = "Top 5 Token Count (Preeclampsia)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+All the top 5 common tokens for each term are articles or the terms themselves.
+
+### Problem 2
+
+(15 points) Does removing stop words change what tokens appear as the most frequent? What are the 5 most common tokens for each search term after removing stop words?
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>% 
+  filter(term == "covid") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "aquamarine", color = "blue") + 
+  labs(title = "Top 5 Token Count (Covid)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>% 
+  filter(term == "meningitis") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "aquamarine", color = "blue") + 
+  labs(title = "Top 5 Token Count (Meningitis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>% 
+  filter(term == "prostate cancer") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "aquamarine", color = "blue") + 
+  labs(title = "Top 5 Token Count (Prostate Cancer)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>% 
+  filter(term == "cystic fibrosis") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "aquamarine", color = "blue") + 
+  labs(title = "Top 5 Token Count (Cystic Fibrosis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+```{r}
+pubmed_data %>% 
+  unnest_tokens(token, abstract) %>%
+  anti_join(stop_words, by = c("token" = "word")) %>%
+  filter(term == "preeclampsia") %>% 
+  count(token) %>% top_n(5,n) %>%
+  ggplot(aes(n, fct_reorder(token, n))) + 
+  geom_col(fill = "aquamarine", color = "blue") + 
+  labs(title = "Top 5 Token Count (Preeclampsia)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Token", y = "Count")
+```
+
+The word "patient" is among the top 5 common tokens for all terms except preeclampsia. Additionally, all tokens contain the terms themselves. Although it is difficult to precisely determine what the PubMed abstracts are about, visualizing the tokens provides readers with general context. From the bar plot, it can be inferred that covid is a "disease" that is associated with"pandemic", and cystic fibrosis is a "disease". In terms of preeclampsia, it can be inferred that it is a symptom that is associated with "women" during "pregnancy."
+
+### Problem 3
+
+(15 points) Tokenize the abstracts into bigrams. Find the 10 most common bigrams and visualize them.
+
+```{r}
+pubmed_data %>% 
+  unnest_ngrams(ngrams, abstract, n = 2) %>% 
+  #separate(ngrams, into = c("word1", "word2"), sep = " ") %>% 
+  #anti_join(stop_words, by = c("ngrams" = "word")) 
+  #select(word1, word2) 
+count(ngrams) %>% top_n(10,n) %>%
+  ggplot(aes(n, fct_reorder(ngrams, n))) + 
+  geom_col(fill = "seagreen1") + 
+  labs(title = "Top 10 Bigrams Count") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Bigrams", y = "Count")
+  
+```
+
+### Problem 4
+
+(15 points) Calculate the TF-IDF value for each word-search term combination (here you want the search term to be the "document"). What are the 5 tokens from each search term with the highest TF-IDF value? How are the results different from the answers you got in Question 1?
+
+```{r}
+pubmed_data %>%
+  unnest_tokens(tokens, abstract) %>%
+  count(tokens, term) %>%
+  bind_tf_idf(tokens, term, n) %>%
+  filter(term == "covid") %>%
+  arrange(desc(tf_idf)) %>% head(5) %>% kable()
+```
+
+```{r}
+pubmed_data %>%
+  unnest_tokens(tokens, abstract) %>%
+  count(tokens, term) %>%
+  bind_tf_idf(tokens, term, n) %>%
+  filter(term == "meningitis") %>%
+  arrange(desc(tf_idf)) %>% head(5) %>% kable()
+```
+
+```{r}
+pubmed_data %>%
+  unnest_tokens(tokens, abstract) %>%
+  count(tokens, term) %>%
+  bind_tf_idf(tokens, term, n) %>%
+  filter(term == "prostate cancer") %>%
+  arrange(desc(tf_idf)) %>% head(5) %>% kable()
+```
+
+```{r}
+pubmed_data %>%
+  unnest_tokens(tokens, abstract) %>%
+  count(tokens, term) %>%
+  bind_tf_idf(tokens, term, n) %>%
+  filter(term == "cystic fibrosis") %>%
+  arrange(desc(tf_idf)) %>% head(5) %>% kable()
+```
+
+```{r}
+pubmed_data %>%
+  unnest_tokens(tokens, abstract) %>%
+  count(tokens, term) %>%
+  bind_tf_idf(tokens, term, n) %>%
+  filter(term == "preeclampsia") %>%
+  arrange(desc(tf_idf)) %>% head(5) %>% kable()
+```
+
+How are the results different from the answers you got in Question 1: since the stop words are not included, the results from this question provides more context of abstracts than it did in question 1.
+
+## Sentiment Analysis
+
+### Problem 5
+
+(20 points) Perform a sentiment analysis using the NRC lexicon. What is the most common sentiment for each search term? What if you remove `positive` and `negative` from the list?
+
+```{r}
+# What is the most common sentiment for each search term?
+pubmed_data %>%
+  unnest_tokens(word, abstract) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  group_by(term) %>% 
+  summarize(sentiment = names(which.max(table(sentiment)))) %>%
+  kable()
+```
+
+```{r}
+# What if you remove positive and negative from the list?
+nrc_fun <- get_sentiments("nrc")
+nrc_fun <- nrc_fun[!nrc_fun$sentiment %in% c("positive", "negative"), ]
+
+pubmed_data %>%
+  unnest_tokens(word, abstract) %>%
+  inner_join(nrc_fun) %>%
+  group_by(term) %>%
+  summarize(sentiment = names(which.max(table(sentiment)))) %>%
+  kable()
+```
+
+### Problem 6
+
+(20 points)
+
+Now perform a sentiment analysis using the AFINN lexicon to get an average positivity score for each abstract (hint: you may want to create a variable that indexes, or counts, the abstracts). Create a visualization that shows these scores grouped by search term. Are any search terms noticeably different from the others?
+
+```{r}
+avg_by_abstract <- pubmed_data %>% 
+  mutate(abstract_num = row_number()) %>% 
+  unnest_tokens(word, abstract, drop = FALSE) %>%
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(term, abstract_num) %>% 
+  summarize(sentiment = mean(value)) 
+
+ggplot(data = avg_by_abstract[avg_by_abstract$term == "covid", ], aes(x = abstract_num, y = sentiment)) + 
+  geom_col() + 
+  scale_y_continuous(limits = c(-4, 4), breaks = -4:4) + 
+  labs(title = "Sentiment Average (Covid)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Abstract", y = "Sentiment Avg")
+```
+
+```{r}
+ggplot(data = avg_by_abstract[avg_by_abstract$term == "meningitis",], aes(x = abstract_num, y = sentiment)) + 
+  geom_col() + 
+  scale_y_continuous(limits = c(-4, 4), breaks = -4:4) + 
+  labs(title = "Sentiment Average (Meningitis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Abstract", y = "Sentiment Avg")
+```
+
+```{r}
+ggplot(data = avg_by_abstract[avg_by_abstract$term == "prostate cancer",], aes(x = abstract_num, y = sentiment)) + 
+  geom_col() + 
+  scale_y_continuous(limits = c(-4, 4), breaks = -4:4) + 
+  labs(title = "Sentiment Average (Prostate Cancer)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Abstract", y = "Sentiment Avg")
+```
+
+```{r}
+ggplot(data = avg_by_abstract[avg_by_abstract$term == "cystic fibrosis",], aes(x = abstract_num, y = sentiment)) + 
+  geom_col() + 
+  scale_y_continuous(limits = c(-4, 4), breaks = -4:4) +
+  labs(title = "Sentiment Average (Cystic Fibrosis)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Abstract", y = "Sentiment Avg")
+```
+
+```{r}
+ggplot(data = avg_by_abstract[avg_by_abstract$term == "preeclampsia",], aes(x = abstract_num, y = sentiment)) + 
+  geom_col() + 
+  scale_y_continuous(limits = c(-4, 4), breaks = -4:4) + 
+  labs(title = "Sentiment Average (Preeclampsia)") + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  labs(x = "Abstract", y = "Sentiment Avg")
+```
+
+The sentiment average for prostate cancer abstracts are relatively lower in magnitude compared to the other terms. Additionally, meningitis has an abstract that scored an average sentiment of 4, which is the abstract below. The content of the abstract seems to lean more negative at a first glance. However, when you compare each token with words from AFINN data, it can be seen that the sentiment value exists only for the term "exuberant", which has the sentiment value of 4. Therefore, it may imply that AFINN alone is not sufficient to provide the full context of the abstract.
+
+```{r}
+meningitis_avg <- avg_by_abstract[avg_by_abstract$term == "meningitis",]
+meningitis_avg$abstract_num[which(meningitis_avg$sentiment == max(meningitis_avg$sentiment))]
+
+pubmed_data[1169,]$abstract
+```
+
+```{r}
+pubmed_data[1169,] %>%
+  unnest_tokens(word, abstract) %>% 
+  inner_join(get_sentiments("afinn"), by = "word") %>% kable()
+```
