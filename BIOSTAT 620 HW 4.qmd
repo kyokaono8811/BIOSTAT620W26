@@ -62,7 +62,13 @@ fun2alt(dat)[1:5,1:5]
 ```
 
 ```{r}
-microbenchmark(fun2(dat), fun2alt(dat))
+microbenchmark(fun2(dat), fun2alt(dat)) 
+```
+
+```{r}
+ggplot(data = microbenchmark(fun2(dat), fun2alt(dat)),
+       aes(x = factor(expr), y = time)) + 
+  geom_boxplot(color = "blue")
 ```
 
 ### Question 2 (8 points)
@@ -99,8 +105,32 @@ fun3(test_data)
 ```
 
 ```{r}
+funalt3 <- function(x) {
+  out <- numeric(length(x))
+  cumsum_x <- 0
+  for (i in seq_along(x)) {
+    val <- x[i]
+    if (val == 0) {
+      cumsum_x <- 0
+    } else {
+      cumsum_x <- cumsum_x + val 
+    }
+    out[i] <- cumsum_x
+  }
+  out
+}
+```
+
+```{r}
 # testing speed
 system.time(fun3(test_data))
+system.time(funalt3(test_data))
+```
+
+```{r}
+ggplot(data = microbenchmark(fun3(test_data), funalt3(test_data)),
+       aes(x = factor(expr), y = time)) + 
+  geom_boxplot(color = "green")
 ```
 
 ### Question 3 (12 points)
@@ -125,18 +155,19 @@ In order to get more accurate estimates, we can run this function multiple times
 ```{r}
 # This runs the simulation a 4,000 times, each with 10,000 points
 set.seed(1231)
+
 system.time({
-  ans <- unlist(lapply(1:4000, sim_pi, n = 10000))
-  print(mean(ans))
+  ans_non_parallel <- unlist(lapply(1:4000, sim_pi, n = 10000))
+  print(mean(ans_non_parallel))
+})
+
+non_parallel<- system.time({
+  ans_non_parallel <- unlist(lapply(1:4000, sim_pi, n = 10000))
+  print(mean(ans_non_parallel))
 })
 ```
 
 Rewrite the previous code using `parLapply()` (or your parallelization method of choice) to parallelize it. Run the code once, using `system.time()`, to show that your version is faster.
-
-Visualize your results in two ways:
-
-1.  Show that both versions produce similar ranges of estimates of $\pi$.
-2.  Show that the parallel versions runs faster.
 
 ```{r}
 # YOUR CODE HERE
@@ -144,7 +175,7 @@ system.time({
   cl <- makeCluster(7L)
   clusterExport(cl, "sim_pi")
   
-  ans <- parLapply(cl = cl,
+  ans_parallel <- parLapply(cl = cl,
                    X = 1:4000,
                    fun = function(i){
                      sim_pi(1000)
@@ -152,10 +183,59 @@ system.time({
  
   stopCluster(cl)
   
-  ans <- do.call(rbind, ans)
+  ans_parallel <- do.call(rbind, ans_parallel)
   
-  print(mean(ans))
+  print(mean(ans_parallel))
 })
+```
+
+```{r}
+parallel <- system.time({
+  cl <- makeCluster(7L)
+  clusterExport(cl, "sim_pi")
+  
+  ans_parallel <- parLapply(cl = cl,
+                   X = 1:4000,
+                   fun = function(i){
+                     sim_pi(1000)
+                   })
+ 
+  stopCluster(cl)
+  
+  ans_parallel <- do.call(rbind, ans_parallel)
+  
+  print(mean(ans_parallel))
+})
+```
+
+Visualize your results in two ways:
+
+1.  Show that both versions produce similar ranges of estimates of $\pi$.
+2.  Show that the parallel versions runs faster.
+
+```{r}
+pi_data <- data.frame(ans_parallel = ans_parallel,
+                      ans_non_parallel = ans_non_parallel)
+
+boxplot(pi_data, 
+        col = c("blue","red"), 
+        main = "Ranges of Estimates of pi",
+        xlab = "Function Type",
+        ylab = "Pi Estimates")
+```
+
+```{r}
+non_parallel
+parallel
+
+timing <- data.frame(non_parallel = non_parallel,
+                     parallel = parallel)
+timing[1:3,]
+
+barplot(t(as.matrix(timing[1:3,])),
+        beside = TRUE,
+        col = c("pink", "skyblue"),
+        legend = colnames(timing))
 ```
 
 ## SQL
@@ -214,7 +294,7 @@ head(dbGetQuery(con,
            ORDER BY species_id"))
 ```
 
-### Question 5 (6 points)
+### Question 5 (6 points) 
 
 Write a query that returns: the total weight, average weight, minimum and maximum weights for all animals caught over the duration of the survey. Can you modify it so that it outputs these values only for weights between 5 and 10 inclusive?
 
@@ -224,7 +304,7 @@ dbGetQuery(con,
            AVG(weight) AS avg_weight, 
            MIN(weight) AS min_weight, 
            MAX(weight) AS max_weight
-           FROM survey")
+           FROM survey") 
 ```
 
 ```{r}
@@ -248,6 +328,7 @@ Show the result and also store the resulting SQL data table as an R object. Hint
 
 ```{r}
 # 1. How many were counted each year, for each different species
+# 2. The average weights of each species in each year
 head(dbGetQuery(con,
            "SELECT species_id, year, COUNT(species_id) AS count, weight, AVG(weight) AS ave_weight
            FROM survey
@@ -292,11 +373,11 @@ dbWriteTable(con, "merged_data", merged_data)
 ```
 
 ```{r}
-head(dbGetQuery(con,
+b <- dbGetQuery(con,
 "SELECT plot_id, plot_type, genus, COUNT(*) AS count
 FROM merged_data
 GROUP BY genus, plot_id
-ORDER BY plot_id ASC, count DESC"))
+ORDER BY plot_id ASC, count DESC")
 ```
 
 ### Question 9 (8 points)
@@ -338,9 +419,9 @@ dbWriteTable(con, "data", data)
 ```
 
 ```{r}
-data <- data %>% filter(plot_id %in% 1:5)
-p <- ggplot(data = data, mapping = aes(x = factor(plot_id), y = count, fill = genus)) +
-  geom_col(position = "dodge") + 
+c <- b %>% filter(plot_id %in% 1:5)
+p <- ggplot(data = c, mapping = aes(x = factor(plot_id), y = count, fill = genus)) +
+  geom_bar(stat = "identity", position = "dodge") + 
   labs(x = "Plot ID", y = "Count")  
   labs(title = "Number of Genus by Plot ID") + 
   theme(plot.title = element_text(hjust = 0.5))
@@ -355,6 +436,7 @@ Using native `plotly` functions (no `ggplot2`) and the data table resultant from
 data_2 <- dbGetQuery(con,
            "SELECT species_id, year, COUNT(species_id) AS count, weight, AVG(weight) AS ave_weight
            FROM survey
+           WHERE weight IS NOT NULL
            GROUP BY species_id, year")
 
 dbWriteTable(con, "data_2", data_2)
@@ -362,6 +444,31 @@ dbWriteTable(con, "data_2", data_2)
 
 ```{r}
 plot_ly(data_2, 
+       x = ~year,
+       y = ~ave_weight, 
+       color = ~species_id,
+       type = "scatter",
+       mode = "lines", 
+       hoverinfo = "text",
+       text = ~paste(paste(species_id, ":", sep = ""),
+                     paste("Year: ", year, sep = ""),
+                     paste(" Average Weight: ", ave_weight, sep = ""),
+                           sep = "<br>"))
+```
+
+```{r}
+data_3 <- dbGetQuery(con,
+           "SELECT species_id, year, COUNT(species_id) AS count, weight, AVG(weight) AS ave_weight
+           FROM survey
+           WHERE weight IS NOT NULL
+           GROUP BY species_id, year
+           HAVING count > 20")
+
+dbWriteTable(con, "data_3", data_3)
+```
+
+```{r}
+plot_ly(data_3, 
        x = ~year,
        y = ~ave_weight, 
        color = ~species_id,
